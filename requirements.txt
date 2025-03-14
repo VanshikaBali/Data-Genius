@@ -1,1 +1,13 @@
-pip install streamlit pandas numpy matplotlib seaborn scipy scikit-learn wordcloud sqlite3 bcrypt
+streamlit==1.30.0
+pandas==2.2.1
+numpy==1.26.4
+matplotlib==3.8.3
+seaborn==0.13.2
+scipy==1.12.0
+scikit-learn==1.4.1.post1
+wordcloud==1.9.3
+bcrypt==4.1.2
+rich==13.3.5
+pygments==2.15.1
+markdown-it-py==2.2.0
+mdurl==0.1.2
