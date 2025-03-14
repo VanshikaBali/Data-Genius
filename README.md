@@ -1,5 +1,3 @@
-# Data-Genius
-
 # Data Genius
 
 ## 📌 Overview
