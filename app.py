@@ -769,26 +769,33 @@ from datetime import datetime
 import io
 import os
 
+import sqlite3
+import pandas as pd
+
 def get_all_data():
     with sqlite3.connect('data_genius.db') as conn:
-        # Check if 'id' column exists in users table
         cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(users)")
-        columns = [info[1] for info in cursor.fetchall()]
-        
-        # Adjust query based on available columns
-        if 'id' in columns:
-            users_query = "SELECT id, username, registration_date FROM users"
-        else:
-            users_query = "SELECT rowid as id, username, registration_date FROM users"
-            
+
+        # Check if 'users' table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users';")
+        if not cursor.fetchone():
+            return pd.DataFrame(columns=["id", "username", "registration_date"]), pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
+
+        # Fetch user data
+        users_query = "SELECT id, username, registration_date FROM users"
         users_df = pd.read_sql_query(users_query, conn)
-        insights_df = pd.read_sql_query(
-            "SELECT rowid as id, username, insights_text, date_created FROM insights", 
-            conn
-        )
+
+        # Check if 'insights' table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='insights';")
+        if not cursor.fetchone():
+            return users_df, pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
+
+        # Fetch insights data
+        insights_query = "SELECT id, username, insights_text, date_created FROM insights"
+        insights_df = pd.read_sql_query(insights_query, conn)
 
     return users_df, insights_df
+
 
 def save_insights(username, insights_text):
     # Ensure insights database table exists
