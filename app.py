@@ -1040,12 +1040,12 @@ def save_insights(username, insights_text):
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
-        cursor.execute(
-        "INSERT INTO insights (username, insights_text, date_created) VALUES (?, ?, datetime('now', 'localtime'))",
-        (username, insights_text)
-        )
-
-        conn.commit()  # ✅ Must commit changes to save data
+         c.execute("INSERT INTO insights (username, insights_text, date_created) VALUES (?, ?, ?)", 
+                (username, insights_text, current_date))
+        conn.commit()
+        
+        # Get the ID of the newly inserted insight
+        insight_id = c.lastrowid
         conn.close()
         print("✅ Insights saved successfully!") 
         
