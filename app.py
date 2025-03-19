@@ -1033,21 +1033,15 @@ def save_insights(username, insights_text):
     # Ensure insights database table exists
     init_db()
     
-    
     # Save to database
     conn = sqlite3.connect('data_genius.db')
     c = conn.cursor()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
-         c.execute("INSERT INTO insights (username, insights_text, date_created) VALUES (?, ?, ?)", 
+        c.execute("INSERT INTO insights (username, insights_text, date_created) VALUES (?, ?, ?)", 
                 (username, insights_text, current_date))
         conn.commit()
-        
-        # Get the ID of the newly inserted insight
-        insight_id = c.lastrowid
-        conn.close()
-        print("✅ Insights saved successfully!") 
         
         # Get the ID of the newly inserted insight
         insight_id = c.lastrowid
@@ -1069,8 +1063,6 @@ def save_insights(username, insights_text):
     except Exception as e:
         st.error(f"Error saving insights: {e}")
         return False
-
-
 def get_insights_from_csv():
     """Retrieve insights from CSV file instead of database"""
     CSV_FILE = "insights_data.csv"
