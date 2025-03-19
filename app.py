@@ -732,13 +732,13 @@ def advanced_analysis_page():
         if is_classification:
            st.write(f"🎯 **Accuracy Score:** {model.score(X_test, y_test):.4f}")
            st.write("📌 **Accuracy Score**: This tells how well the model correctly classifies the test data. A score of 1 means perfect predictions, while 0 means completely incorrect predictions.")
-            st.write("📊 **Classification Report:**")
-            st.text(classification_report(y_test, y_pred))
+           st.write("📊 **Classification Report:**")
+           st.text(classification_report(y_test, y_pred))
         else:
-            st.write(f"📈 **R² Score:** {r2_score(y_test, y_pred):.4f}")
-            st.write("📌 **R² Score**: This measures how well the regression model fits the data. A score close to 1 indicates a good fit, while a score near 0 or negative means the model is not performing well.")
-            st.write(f"🔍 **Mean Squared Error (MSE):** {mean_squared_error(y_test, y_pred):.4f}")
-            st.write("📌 **MSE**: This shows how far the predicted values are from the actual values. A lower MSE means better predictions, while a higher value indicates poor model performance.")
+           st.write(f"📈 **R² Score:** {r2_score(y_test, y_pred):.4f}")
+           st.write("📌 **R² Score**: This measures how well the regression model fits the data. A score close to 1 indicates a good fit, while a score near 0 or negative means the model is not performing well.")
+           st.write(f"🔍 **Mean Squared Error (MSE):** {mean_squared_error(y_test, y_pred):.4f}")
+           st.write("📌 **MSE**: This shows how far the predicted values are from the actual values. A lower MSE means better predictions, while a higher value indicates poor model performance.")
             
             st.write(f"🔮 **Predicted Values:** {y_pred[:10]}")  # Display first 10 predictions
             st.write("📌 **Predictions**: These are the values predicted by the model based on the input data. In regression, these are continuous values. In classification, they represent class labels.")
