@@ -1057,26 +1057,20 @@ def get_insights_from_csv():
         return pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
 
 def get_all_data():
-    """Updated to include CSV data"""
     with sqlite3.connect('data_genius.db') as conn:
-        # Check if 'id' column exists in users table
         cursor = conn.cursor()
-        cursor.execute("PRAGMA table_info(users)")
-        columns = [info[1] for info in cursor.fetchall()]
-        
-        # Adjust query based on available columns
-        if 'id' in columns:
-            users_query = "SELECT id, username, registration_date FROM users"
-        else:
-            users_query = "SELECT rowid as id, username, registration_date FROM users"
-            
-        users_df = pd.read_sql_query(users_query, conn)
-    
-    # Get insights from CSV instead of database
-    insights_df = get_insights_from_csv()
-    
-    return users_df, insights_df
 
+        # Debugging - Table structure check
+        cursor.execute("PRAGMA table_info(users);")
+        print("Users Table Structure:", cursor.fetchall())  
+
+        # Debugging - Check data before reading with Pandas
+        cursor.execute("SELECT * FROM users;")
+        print("Users Table Data:", cursor.fetchall())  
+
+        users_df = pd.read_sql_query("SELECT * FROM users", conn)
+
+    return users_df
 
 
 def is_admin():
