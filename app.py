@@ -507,6 +507,7 @@ def data_analysis_page():
             st.write(grouped_data)
         except Exception as e:
             st.error(f"❌ Error: {e}")
+            
 def data_visualization_page():
     st.title("📊 Data Visualization")
 
@@ -565,6 +566,8 @@ def data_visualization_page():
             fig, ax = plt.subplots(figsize=(10, 6))
             if graph_type == "Bar Chart":
                 sns.barplot(x=df[x_axis], y=df[y_axis], ax=ax)
+            elif graph_type == "Histogram":
+                sns.histplot(df[x_axis], kde=True, ax=ax)
             elif graph_type == "Line Chart":
                 sns.lineplot(x=df[x_axis], y=df[y_axis], ax=ax)
             elif graph_type == "Scatter Plot":
