@@ -772,37 +772,33 @@ import os
 import sqlite3
 import pandas as pd
 
-users_df, insights_df, *_ = get_all_data()
+def fetch_user_data():
+    users_df, insights_df, *_ = get_all_data()
+    with sqlite3.connect('data_genius.db') as conn:
+        cursor = conn.cursor()
 
-# Ensure they are always DataFrames
-if users_df is None:
-    users_df = pd.DataFrame(columns=["id", "username", "registration_date"])
-if insights_df is None:
-    insights_df = pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
+        # Check if 'users' table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users';")
+        if not cursor.fetchone():
+            return pd.DataFrame(columns=["id", "username", "registration_date"]), pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
 
-with sqlite3.connect('data_genius.db') as conn:
-    cursor = conn.cursor()
-
-    # Check if 'users' table exists
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users';")
-    if not cursor.fetchone():
-        users_df = pd.DataFrame(columns=["id", "username", "registration_date"])
-
-    else:
+        # Fetch user data
         users_query = "SELECT id, username, registration_date FROM users"
         users_df = pd.read_sql_query(users_query, conn)
 
-    # Check if 'insights' table exists
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='insights';")
-    if not cursor.fetchone():
-        insights_df = pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
+        # Check if 'insights' table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='insights';")
+        if not cursor.fetchone():
+            return users_df, pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
 
-    else:
+        # Fetch insights data
         insights_query = "SELECT id, username, insights_text, date_created FROM insights"
         insights_df = pd.read_sql_query(insights_query, conn)
 
-# Ensure the function always returns two DataFrames
-    return users_df, insights_df
+    return users_df, insights_df  # ✅ Now inside a function
+
+# Call the function where needed
+users_df, insights_df = fetch_user_data()
 
 
 def save_insights(username, insights_text):
