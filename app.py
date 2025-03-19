@@ -582,14 +582,6 @@ def data_visualization_page():
             plt.tight_layout()
             st.pyplot(fig)
 
-            # Save visualization to database if user is logged in
-            if 'username' in st.session_state:
-                buf = io.BytesIO()
-                fig.savefig(buf, format='png')
-                image_bytes = buf.getvalue()
-                save_visualization(st.session_state['username'], image_bytes)
-                st.success(f"✅ {graph_type} saved to your profile!")
-
         # --- PIE CHART ---
         elif graph_type == "Pie Chart":
             if st.button("📊 Generate Pie Chart"):
@@ -598,13 +590,6 @@ def data_visualization_page():
                 ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90)
                 ax.axis('equal')
                 st.pyplot(fig)
-
-                if 'username' in st.session_state:
-                    buf = io.BytesIO()
-                    fig.savefig(buf, format='png')
-                    image_bytes = buf.getvalue()
-                    save_visualization(st.session_state['username'], image_bytes)
-                    st.success("✅ Pie Chart saved to your profile!")
 
 
 import streamlit as st
