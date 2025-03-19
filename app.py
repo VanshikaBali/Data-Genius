@@ -740,6 +740,9 @@ def advanced_analysis_page():
             st.write(f"🔍 **Mean Squared Error (MSE):** {mean_squared_error(y_test, y_pred):.4f}")
             st.write("📌 **MSE**: This shows how far the predicted values are from the actual values. A lower MSE means better predictions, while a higher value indicates poor model performance.")
             
+            st.write(f"🔮 **Predicted Values:** {y_pred[:10]}")  # Display first 10 predictions
+            st.write("📌 **Predictions**: These are the values predicted by the model based on the input data. In regression, these are continuous values. In classification, they represent class labels.")
+
     # --- TEXT ANALYSIS ---
     elif selected_analysis == "Text Analysis":
         st.subheader("📜 Text Analysis")
