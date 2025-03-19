@@ -1033,15 +1033,21 @@ def save_insights(username, insights_text):
     # Ensure insights database table exists
     init_db()
     
+    
     # Save to database
     conn = sqlite3.connect('data_genius.db')
     c = conn.cursor()
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
-        c.execute("INSERT INTO insights (username, insights_text, date_created) VALUES (?, ?, ?)", 
-                (username, insights_text, current_date))
-        conn.commit()
+        cursor.execute(
+        "INSERT INTO insights (username, insights_text, date_created) VALUES (?, ?, datetime('now', 'localtime'))",
+        (username, insights_text)
+        )
+
+        conn.commit()  # ✅ Must commit changes to save data
+        conn.close()
+        print("✅ Insights saved successfully!") 
         
         # Get the ID of the newly inserted insight
         insight_id = c.lastrowid
