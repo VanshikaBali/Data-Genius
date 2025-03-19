@@ -776,17 +776,18 @@ def get_all_data():
     with sqlite3.connect('data_genius.db') as conn:
         cursor = conn.cursor()
 
-        # Debugging - Table structure check
-        cursor.execute("PRAGMA table_info(users);")
-        print("Users Table Structure:", cursor.fetchall())  
-
-        # Debugging - Check data before reading with Pandas
-        cursor.execute("SELECT * FROM users;")
-        print("Users Table Data:", cursor.fetchall())  
-
+        # Fetch users data
         users_df = pd.read_sql_query("SELECT * FROM users", conn)
 
-    return users_df
+        # Check if insights table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='insights';")
+        if cursor.fetchone():
+            insights_df = pd.read_sql_query("SELECT * FROM insights", conn)
+        else:
+            insights_df = pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
+
+    return users_df, insights_df 
+
 def fetch_user_data():
     users_df, insights_df, *_ = get_all_data()
     with sqlite3.connect('data_genius.db') as conn:
