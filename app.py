@@ -772,29 +772,37 @@ import os
 import sqlite3
 import pandas as pd
 
-def get_all_data():
-    with sqlite3.connect('data_genius.db') as conn:
-        cursor = conn.cursor()
+users_df, insights_df, *_ = get_all_data()
 
-        # Check if 'users' table exists
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users';")
-        if not cursor.fetchone():
-            return pd.DataFrame(columns=["id", "username", "registration_date"]), pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
+# Ensure they are always DataFrames
+if users_df is None:
+    users_df = pd.DataFrame(columns=["id", "username", "registration_date"])
+if insights_df is None:
+    insights_df = pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
 
-        # Fetch user data
+with sqlite3.connect('data_genius.db') as conn:
+    cursor = conn.cursor()
+
+    # Check if 'users' table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users';")
+    if not cursor.fetchone():
+        users_df = pd.DataFrame(columns=["id", "username", "registration_date"])
+
+    else:
         users_query = "SELECT id, username, registration_date FROM users"
         users_df = pd.read_sql_query(users_query, conn)
 
-        # Check if 'insights' table exists
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='insights';")
-        if not cursor.fetchone():
-            return users_df, pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
+    # Check if 'insights' table exists
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='insights';")
+    if not cursor.fetchone():
+        insights_df = pd.DataFrame(columns=["id", "username", "insights_text", "date_created"])
 
-        # Fetch insights data
+    else:
         insights_query = "SELECT id, username, insights_text, date_created FROM insights"
         insights_df = pd.read_sql_query(insights_query, conn)
 
-    return users_df, insights_df
+# Ensure the function always returns two DataFrames
+return users_df, insights_df
 
 
 def save_insights(username, insights_text):
