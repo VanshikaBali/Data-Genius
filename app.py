@@ -583,17 +583,17 @@ def data_visualization_page():
             st.pyplot(fig)
 
    # --- PIE CHART ---
-elif graph_type == "Pie Chart":
-    if st.button("📊 Generate Pie Chart", key="pie_chart_btn"):
-        value_counts = df[x_axis].value_counts()
+    elif graph_type == "Pie Chart":
+        if st.button("📊 Generate Pie Chart", key="pie_chart_btn"):
+            value_counts = df[x_axis].value_counts()
 
-        if value_counts.empty:
-            st.warning("⚠ Not enough data to create a Pie Chart.")
-        else:
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90)
-            ax.axis('equal')
-            st.pyplot(fig)
+            if value_counts.empty:
+                st.warning("⚠ Not enough data to create a Pie Chart.")
+            else:
+                fig, ax = plt.subplots(figsize=(10, 6))
+                ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90)
+                ax.axis('equal')
+                st.pyplot(fig)
 
 
 import streamlit as st
