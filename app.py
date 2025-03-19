@@ -528,77 +528,87 @@ def data_visualization_page():
         "Pie Chart", "Pair Plot", "Violin Plot", "Area Chart", "Heatmap"
     ], key="graph_type")
 
-    # --- PAIR PLOT ---
-    if graph_type == "Pair Plot":
-        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-        if len(numeric_cols) > 1:
-            selected_cols = st.multiselect(
-                "Select columns for Pair Plot", options=numeric_cols, default=numeric_cols[:3], key="pair_plot_cols"
-            )
-            if len(selected_cols) >= 2 and st.button("📊 Generate Pair Plot", key="pair_plot_btn"):
-                pair_fig = sns.pairplot(df[selected_cols])
-                st.pyplot(pair_fig)
-        else:
-            st.warning("⚠ Not enough numeric columns for a Pair Plot.")
-
-    # --- HEATMAP ---
-    elif graph_type == "Heatmap":
-        numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-        if len(numeric_cols) > 1:
-            selected_cols = st.multiselect(
-                "Select columns for Heatmap", options=numeric_cols, default=numeric_cols[:5], key="heatmap_cols"
-            )
-            if len(selected_cols) >= 2 and st.button("🔥 Generate Heatmap", key="heatmap_btn"):
-                fig, ax = plt.subplots(figsize=(10, 8))
-                correlation = df[selected_cols].corr()
-                sns.heatmap(correlation, annot=True, cmap='viridis', ax=ax)
-                st.pyplot(fig)
-        else:
-            st.warning("⚠ Not enough numeric columns for a Heatmap.")
-
-    # --- OTHER CHARTS ---
-    elif graph_type in ["Bar Chart", "Line Chart", "Scatter Plot", "Box Plot", "Violin Plot", "Area Chart"]:
-        x_axis = st.selectbox("📌 Select X-axis", df.columns, key="x_axis")
-        y_numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-        y_axis = st.selectbox("📌 Select Y-axis", y_numeric_cols, key="y_axis")
-
-        if st.button(f"📊 Generate {graph_type}", key=f"{graph_type}_btn"):
-            fig, ax = plt.subplots(figsize=(10, 6))
-            if graph_type == "Bar Chart":
-                sns.barplot(x=df[x_axis], y=df[y_axis], ax=ax)
-            elif graph_type == "Histogram":
-                sns.histplot(df[x_axis], kde=True, ax=ax)
-            elif graph_type == "Line Chart":
-                sns.lineplot(x=df[x_axis], y=df[y_axis], ax=ax)
-            elif graph_type == "Scatter Plot":
-                sns.scatterplot(x=df[x_axis], y=df[y_axis], ax=ax)
-            elif graph_type == "Box Plot":
-                sns.boxplot(x=df[x_axis], y=df[y_axis], ax=ax)
-            elif graph_type == "Violin Plot":
-                sns.violinplot(x=df[x_axis], y=df[y_axis], ax=ax)
-            elif graph_type == "Area Chart":
-                sns.lineplot(x=df[x_axis], y=df[y_axis], ax=ax)
-                ax.fill_between(df[x_axis], df[y_axis], alpha=0.3)  # ✅ Fixed fill_between
-
-            plt.xticks(rotation=45)
-            plt.tight_layout()
-            st.pyplot(fig)
-
-    # --- PIE CHART ---
-    elif graph_type == "Pie Chart":
-        x_axis = st.selectbox("📌 Select X-axis for Pie Chart", df.columns, key="pie_chart_x")
-        
-        if st.button("📊 Generate Pie Chart", key="pie_chart_btn"):
-            value_counts = df[x_axis].value_counts()
-
-            if value_counts.empty:
-                st.warning("⚠ Not enough data to create a Pie Chart.")
+    try:
+        # --- PAIR PLOT ---
+        if graph_type == "Pair Plot":
+            numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+            if len(numeric_cols) > 1:
+                selected_cols = st.multiselect(
+                    "Select columns for Pair Plot", options=numeric_cols, default=numeric_cols[:3], key="pair_plot_cols"
+                )
+                if len(selected_cols) >= 2 and st.button("📊 Generate Pair Plot", key="pair_plot_btn"):
+                    pair_fig = sns.pairplot(df[selected_cols])
+                    st.pyplot(pair_fig)
             else:
+                st.warning("⚠ Not enough numeric columns for a Pair Plot.")
+
+        # --- HEATMAP ---
+        elif graph_type == "Heatmap":
+            numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+            if len(numeric_cols) > 1:
+                selected_cols = st.multiselect(
+                    "Select columns for Heatmap", options=numeric_cols, default=numeric_cols[:5], key="heatmap_cols"
+                )
+                if len(selected_cols) >= 2 and st.button("🔥 Generate Heatmap", key="heatmap_btn"):
+                    fig, ax = plt.subplots(figsize=(10, 8))
+                    correlation = df[selected_cols].corr()
+                    sns.heatmap(correlation, annot=True, cmap='viridis', ax=ax)
+                    st.pyplot(fig)
+            else:
+                st.warning("⚠ Not enough numeric columns for a Heatmap.")
+
+        # --- OTHER CHARTS ---
+        elif graph_type in ["Bar Chart", "Line Chart", "Scatter Plot", "Box Plot", "Violin Plot", "Area Chart"]:
+            x_axis = st.selectbox("📌 Select X-axis", df.columns, key="x_axis")
+            y_numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+
+            # Ensure Y-axis selection is only for numeric data
+            if graph_type == "Histogram":
+                y_axis = st.selectbox("📌 Select Numeric Column for Histogram", y_numeric_cols, key="hist_y_axis")
+            else:
+                y_axis = st.selectbox("📌 Select Y-axis", y_numeric_cols, key="y_axis")
+
+            if st.button(f"📊 Generate {graph_type}", key=f"{graph_type}_btn"):
                 fig, ax = plt.subplots(figsize=(10, 6))
-                ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90)
-                ax.axis('equal')
+
+                # Conditional logic based on chart type
+                if graph_type == "Bar Chart":
+                    sns.barplot(x=df[x_axis], y=df[y_axis], ax=ax)
+                elif graph_type == "Histogram":
+                    sns.histplot(df[y_axis], kde=True, ax=ax)  # ✅ Fixed histogram
+                elif graph_type == "Line Chart":
+                    sns.lineplot(x=df[x_axis], y=df[y_axis], ax=ax)
+                elif graph_type == "Scatter Plot":
+                    sns.scatterplot(x=df[x_axis], y=df[y_axis], ax=ax)
+                elif graph_type == "Box Plot":
+                    sns.boxplot(x=df[x_axis], y=df[y_axis], ax=ax)
+                elif graph_type == "Violin Plot":
+                    sns.violinplot(x=df[x_axis], y=df[y_axis], ax=ax)
+                elif graph_type == "Area Chart":
+                    sns.lineplot(x=df[x_axis], y=df[y_axis], ax=ax)
+                    ax.fill_between(df[x_axis], df[y_axis], alpha=0.3)  # ✅ Fixed fill_between
+
+                plt.xticks(rotation=45)
+                plt.tight_layout()
                 st.pyplot(fig)
 
+        # --- PIE CHART ---
+        elif graph_type == "Pie Chart":
+            x_axis = st.selectbox("📌 Select X-axis for Pie Chart", df.columns, key="pie_chart_x")
+            
+            if st.button("📊 Generate Pie Chart", key="pie_chart_btn"):
+                value_counts = df[x_axis].value_counts()
+
+                if value_counts.empty:
+                    st.warning("⚠ Not enough data to create a Pie Chart.")
+                else:
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90)
+                    ax.axis('equal')
+                    st.pyplot(fig)
+
+    except Exception as e:
+        st.error(f"🚨 Error: {str(e)}")
 
 import streamlit as st
 import pandas as pd
