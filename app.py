@@ -802,7 +802,7 @@ with sqlite3.connect('data_genius.db') as conn:
         insights_df = pd.read_sql_query(insights_query, conn)
 
 # Ensure the function always returns two DataFrames
-return users_df, insights_df
+    return users_df, insights_df
 
 
 def save_insights(username, insights_text):
