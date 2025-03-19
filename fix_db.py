@@ -28,6 +28,17 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS visualizations (
     date_created TEXT NOT NULL,
     FOREIGN KEY (username) REFERENCES users (username)
 )''')
+#Analysis results
+cursor.execute('''CREATE TABLE IF NOT EXISTS analysis_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL,
+    model_name TEXT NOT NULL,
+    accuracy FLOAT NOT NULL,
+    date_created TEXT NOT NULL,
+    FOREIGN KEY (username) REFERENCES users (username)
+)''')
+
+
 
 conn.commit()
 conn.close()
