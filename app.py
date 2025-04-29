@@ -765,11 +765,11 @@ def advanced_analysis_page():
         ax.set_title('Confusion Matrix')
         st.pyplot(fig)
 
-        # ROC Curve (if applicable)
-        if hasattr(model, "predict_proba"):
+        # ROC Curve (only for binary classification)
+        if len(np.unique(y)) == 2 and hasattr(model, "predict_proba"):
             st.markdown("#### ROC Curve")
             y_prob = model.predict_proba(X_test)[:, 1]
-            fpr, tpr, _ = roc_curve(y_test, y_prob, pos_label=model.classes_[1])
+            fpr, tpr, _ = roc_curve(y_test, y_prob)
             roc_auc = auc(fpr, tpr)
             fig, ax = plt.subplots(figsize=(8, 6))
             ax.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
@@ -781,6 +781,8 @@ def advanced_analysis_page():
             ax.set_title('Receiver Operating Characteristic')
             ax.legend(loc="lower right")
             st.pyplot(fig)
+        else:
+            st.warning("⚠ ROC Curve is only available for binary classification problems.")
 
         # Feature Importance (for Random Forest)
         if model_name == "Random Forest":
