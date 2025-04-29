@@ -687,13 +687,13 @@ def advanced_analysis_page():
     elif selected_analysis == "Predictive Analysis":
         st.subheader("🤖 Predictive Analysis")
         
-        # Select target (only numeric columns suitable for classification)
+        # Select target (all numeric columns)
         numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
-        target_options = [col for col in numeric_cols if len(data[col].unique()) <= 10]  # Limit to columns with few unique values
-        if not target_options:
-            st.error("⚠ No suitable numeric columns for classification. Please select a numeric column with fewer than 10 unique values.")
+        if not numeric_cols.empty:
+            target = st.selectbox("🎯 Select Target Column (Y)", numeric_cols)
+        else:
+            st.error("⚠ No numeric columns available for classification.")
             return
-        target = st.selectbox("🎯 Select Target Column (Y)", target_options)
         model_name = st.selectbox("Select Model", ["Logistic Regression", "Random Forest", "Decision Tree", "SVM"])
 
         # Automatically select all other numeric columns as features (X)
