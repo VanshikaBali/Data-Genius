@@ -630,7 +630,8 @@ from sklearn.metrics import classification_report, confusion_matrix, mean_square
 def get_cleaned_data():
     return st.session_state.get('cleaned_data', None)
 
-def advanced_analysis_page():
+
+ef advanced_analysis_page():
     st.markdown("<h2 style='color: #FF5733;'><em>Advanced Analysis</em></h2>", unsafe_allow_html=True)
 
     # Use cleaned data if available
@@ -642,8 +643,7 @@ def advanced_analysis_page():
 
     selected_analysis = st.selectbox("🔍 Select Type of Analysis", [
         "Descriptive Analysis", "Exploratory Data Analysis", "Inferential Analysis", 
-        "Predictive Analysis", 
-        "Text Analysis", "Time Series Analysis"
+        "Predictive Analysis", "Text Analysis", "Time Series Analysis"
     ])
 
     # --- DESCRIPTIVE ANALYSIS ---
@@ -670,181 +670,240 @@ def advanced_analysis_page():
         ])
 
         if test_type == "T-Test":
-            col1, col2 = st.selectbox("Select first numerical column", data.select_dtypes(include=['number']).columns), \
-                         st.selectbox("Select second numerical column", data.select_dtypes(include=['number']).columns)
+            col1 = st.selectbox("Select first numerical column", data.select_dtypes(include=['number']).columns)
+            col2 = st.selectbox("Select second numerical column", data.select_dtypes(include=['number']).columns)
             if col1 and col2 and st.button("Run T-Test"):
                 t_stat, p_value = stats.ttest_ind(data[col1].dropna(), data[col2].dropna(), nan_policy='omit')
                 st.write(f"T-Test Results:\n- **T-statistic**: {t_stat:.4f}\n- **P-value**: {p_value:.4f}")
 
         elif test_type == "ANOVA":
-            groupby_col, value_col = st.selectbox("Select grouping column (categorical)", data.select_dtypes(include=['object']).columns), \
-                                     st.selectbox("Select value column (numerical)", data.select_dtypes(include=['number']).columns)
+            groupby_col = st.selectbox("Select grouping column (categorical)", data.select_dtypes(include=['object']).columns)
+            value_col = st.selectbox("Select value column (numerical)", data.select_dtypes(include=['number']).columns)
             if groupby_col and value_col and st.button("Run ANOVA"):
                 groups = [data[data[groupby_col] == name][value_col].dropna() for name in data[groupby_col].unique()]
                 f_stat, p_value = stats.f_oneway(*groups)
                 st.write(f"ANOVA Results:\n- **F-statistic**: {f_stat:.4f}\n- **P-value**: {p_value:.4f}")
 
-    # --- PREDICTIVE ANALYSIS (Your Provided Code) ---
+    # --- PREDICTIVE ANALYSIS ---
     elif selected_analysis == "Predictive Analysis":
-    st.subheader("🤖 Predictive Analysis")
-    
-    # Select target and features
-    target = st.selectbox("🎯 Select Target Column", data.columns)
-    is_regression = data[target].dtype in ['int64', 'float64'] and len(data[target].unique()) > 10
-    model_type = st.radio("Select Model Type", ["Automatic", "Classification", "Regression"])
+        st.subheader("🤖 Predictive Analysis")
+        
+        # Select target and features
+        target = st.selectbox("🎯 Select Target Column", data.columns)
+        is_regression = data[target].dtype in ['int64', 'float64'] and len(data[target].unique()) > 10
+        model_type = st.radio("Select Model Type", ["Automatic", "Classification", "Regression"])
 
-    if model_type == "Automatic":
-        is_classification = not is_regression
-    else:
-        is_classification = model_type == "Classification"
+        if model_type == "Automatic":
+            is_classification = not is_regression
+        else:
+            is_classification = model_type == "Classification"
 
-    model_name = st.selectbox("Select Model", 
-                              ["Random Forest", "Logistic Regression", "Decision Tree", "SVM"] if is_classification 
-                              else ["Linear Regression", "Random Forest Regressor", "Ridge", "Lasso"])
+        model_name = st.selectbox("Select Model", 
+                                ["Random Forest", "Logistic Regression", "Decision Tree", "SVM"] if is_classification 
+                                else ["Linear Regression", "Random Forest Regressor", "Ridge", "Lasso"])
 
-    feature_cols = st.multiselect("Select Feature Columns", 
-                                  [col for col in data.columns if col != target],
-                                  default=[col for col in data.columns if col != target][:5])
+        feature_cols = st.multiselect("Select Feature Columns", 
+                                    [col for col in data.columns if col != target],
+                                    default=[col for col in data.columns if col != target][:5])
 
-    if not feature_cols:
-        st.warning("⚠ Please select at least one feature column.")
-        return
+        if not feature_cols:
+            st.warning("⚠ Please select at least one feature column.")
+            return
 
-    X = data[feature_cols].copy()
-    y = data[target].copy()
+        X = data[feature_cols].copy()
+        y = data[target].copy()
 
-    # Handle categorical features
-    categorical_cols = X.select_dtypes(include=['object']).columns
-    for col in categorical_cols:
-        X[col] = LabelEncoder().fit_transform(X[col].astype(str))
+        # Handle categorical features
+        categorical_cols = X.select_dtypes(include=['object']).columns
+        for col in categorical_cols:
+            X[col] = LabelEncoder().fit_transform(X[col].astype(str))
 
-    # Handle missing values
-    X.fillna(X.mean(numeric_only=True), inplace=True)
-    if np.issubdtype(y.dtype, np.number):
-        y.fillna(y.mean(), inplace=True)
-    else:
-        y.fillna(y.mode()[0], inplace=True)
+        # Handle missing values
+        X.fillna(X.mean(numeric_only=True), inplace=True)
+        if np.issubdtype(y.dtype, np.number):
+            y.fillna(y.mean(), inplace=True)
+        else:
+            y.fillna(y.mode()[0], inplace=True)
 
-    # Split data
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Split data
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Initialize and train model
-    if is_classification:
-        if model_name == "Random Forest":
-            model = RandomForestClassifier(random_state=42)
-        elif model_name == "Logistic Regression":
-            model = LogisticRegression(random_state=42)
-        elif model_name == "Decision Tree":
-            model = DecisionTreeClassifier(random_state=42)
-        elif model_name == "SVM":
-            model = SVC(random_state=42, probability=True)
-    else:
-        if model_name == "Linear Regression":
-            model = LinearRegression()
-        elif model_name == "Random Forest Regressor":
-            model = RandomForestRegressor(random_state=42)
-        elif model_name == "Ridge":
-            model = Ridge(random_state=42)
-        elif model_name == "Lasso":
-            model = Lasso(random_state=42)
+        # Initialize and train model
+        if is_classification:
+            if model_name == "Random Forest":
+                model = RandomForestClassifier(random_state=42)
+            elif model_name == "Logistic Regression":
+                model = LogisticRegression(random_state=42)
+            elif model_name == "Decision Tree":
+                model = DecisionTreeClassifier(random_state=42)
+            elif model_name == "SVM":
+                model = SVC(random_state=42, probability=True)
+        else:
+            if model_name == "Linear Regression":
+                model = LinearRegression()
+            elif model_name == "Random Forest Regressor":
+                model = RandomForestRegressor(random_state=42)
+            elif model_name == "Ridge":
+                model = Ridge(random_state=42)
+            elif model_name == "Lasso":
+                model = Lasso(random_state=42)
 
-    model.fit(X_train, y_train)
-    y_pred = model.predict(X_test)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
 
-    # Display model performance
-    st.markdown("### 📊 Model Performance")
-    if is_classification:
-        accuracy = model.score(X_test, y_test)
-        st.write(f"🎯 **Accuracy Score:** {accuracy:.4f}")
-        st.write("📊 **Classification Report:**")
-        st.text(classification_report(y_test, y_pred))
-    else:
-        r2 = r2_score(y_test, y_pred)
-        mse = mean_squared_error(y_test, y_pred)
-        st.write(f"📈 **R² Score:** {r2:.4f}")
-        st.write(f"📉 **Mean Squared Error:** {mse:.4f}")
+        # Display model performance
+        st.markdown("### 📊 Model Performance")
+        if is_classification:
+            accuracy = model.score(X_test, y_test)
+            st.write(f"🎯 **Accuracy Score:** {accuracy:.4f}")
+            st.write("📊 **Classification Report:**")
+            st.text(classification_report(y_test, y_pred))
+        else:
+            r2 = r2_score(y_test, y_pred)
+            mse = mean_squared_error(y_test, y_pred)
+            st.write(f"📈 **R² Score:** {r2:.4f}")
+            st.write(f"📉 **Mean Squared Error:** {mse:.4f}")
 
-    # Display predictions
-    st.markdown("### 🔍 Predictions")
-    pred_df = pd.DataFrame({
-        'Actual': y_test,
-        'Predicted': y_pred
-    }).reset_index(drop=True)
-    st.write(pred_df.head(10))  # Show first 10 predictions
+        # Display predictions
+        st.markdown("### 🔍 Predictions")
+        pred_df = pd.DataFrame({
+            'Actual': y_test,
+            'Predicted': y_pred
+        }).reset_index(drop=True)
+        st.write(pred_df.head(10))  # Show first 10 predictions
 
-    # Download predictions as CSV
-    csv = pred_df.to_csv(index=False)
-    b64 = base64.b64encode(csv.encode()).decode()
-    href = f'<a href="data:file/csv;base64,{b64}" download="predictions.csv">Download Predictions as CSV</a>'
-    st.markdown(href, unsafe_allow_html=True)
+        # Download predictions as CSV
+        csv = pred_df.to_csv(index=False)
+        b64 = base64.b64encode(csv.encode()).decode()
+        href = f'<a href="data:file/csv;base64,{b64}" download="predictions.csv">Download Predictions as CSV</a>'
+        st.markdown(href, unsafe_allow_html=True)
 
-    # Visualizations
-    st.markdown("### 📈 Visualizations")
+        # Visualizations
+        st.markdown("### 📈 Visualizations")
 
-    # Classification Visualizations
-    if is_classification:
-        # Confusion Matrix
-        st.markdown("#### Confusion Matrix")
-        cm = confusion_matrix(y_test, y_pred)
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
-        ax.set_xlabel('Predicted')
-        ax.set_ylabel('Actual')
-        ax.set_title('Confusion Matrix')
-        st.pyplot(fig)
+        # Classification Visualizations
+        if is_classification:
+            # Confusion Matrix
+            st.markdown("#### Confusion Matrix")
+            cm = confusion_matrix(y_test, y_pred)
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+            ax.set_xlabel('Predicted')
+            ax.set_ylabel('Actual')
+            ax.set_title('Confusion Matrix')
+            st.pyplot(fig)
 
-        # Save visualization
-        if 'username' in st.session_state:
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png')
-            image_bytes = buf.getvalue()
-            save_visualization(st.session_state['username'], image_bytes)
-            st.success("✅ Confusion Matrix saved to your profile!")
+            # Save visualization
+            if 'username' in st.session_state:
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png')
+                image_bytes = buf.getvalue()
+                save_visualization(st.session_state['username'], image_bytes)
+                st.success("✅ Confusion Matrix saved to your profile!")
 
-    # Regression Visualizations
-    else:
-        # Actual vs Predicted Scatter Plot
-        st.markdown("#### Actual vs Predicted Values")
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.scatterplot(x=y_test, y=y_pred, ax=ax)
-        ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
-        ax.set_xlabel('Actual Values')
-        ax.set_ylabel('Predicted Values')
-        ax.set_title('Actual vs Predicted')
-        st.pyplot(fig)
+            # ROC Curve (if applicable)
+            if hasattr(model, "predict_proba"):
+                st.markdown("#### ROC Curve")
+                y_prob = model.predict_proba(X_test)[:, 1]
+                fpr, tpr, _ = roc_curve(y_test, y_prob, pos_label=model.classes_[1])
+                roc_auc = auc(fpr, tpr)
+                fig, ax = plt.subplots(figsize=(8, 6))
+                ax.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
+                ax.plot([0, 1], [0, 1], 'k--')
+                ax.set_xlim([0.0, 1.0])
+                ax.set_ylim([0.0, 1.05])
+                ax.set_xlabel('False Positive Rate')
+                ax.set_ylabel('True Positive Rate')
+                ax.set_title('Receiver Operating Characteristic')
+                ax.legend(loc="lower right")
+                st.pyplot(fig)
 
-        # Save visualization
-        if 'username' in st.session_state:
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png')
-            image_bytes = buf.getvalue()
-            save_visualization(st.session_state['username'], image_bytes)
-            st.success("✅ Actual vs Predicted Plot saved to your profile!")
+                # Save visualization
+                if 'username' in st.session_state:
+                    buf = io.BytesIO()
+                    fig.savefig(buf, format='png')
+                    image_bytes = buf.getvalue()
+                    save_visualization(st.session_state['username'], image_bytes)
+                    st.success("✅ ROC Curve saved to your profile!")
 
-    # Feature Importance (for Random Forest)
-    if model_name in ["Random Forest", "Random Forest Regressor"]:
-        st.markdown("#### Feature Importance")
-        importances = model.feature_importances_
-        feature_imp_df = pd.DataFrame({
-            'Feature': feature_cols,
-            'Importance': importances
-        }).sort_values('Importance', ascending=False)
+        # Regression Visualizations
+        else:
+            # Actual vs Predicted Scatter Plot
+            st.markdown("#### Actual vs Predicted Values")
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.scatterplot(x=y_test, y=y_pred, ax=ax)
+            ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+            ax.set_xlabel('Actual Values')
+            ax.set_ylabel('Predicted Values')
+            ax.set_title('Actual vs Predicted')
+            st.pyplot(fig)
 
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.barplot(x='Importance', y='Feature', data=feature_imp_df, ax=ax)
-        ax.set_title('Feature Importance')
-        st.pyplot(fig)
+            # Save visualization
+            if 'username' in st.session_state:
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png')
+                image_bytes = buf.getvalue()
+                save_visualization(st.session_state['username'], image_bytes)
+                st.success("✅ Actual vs Predicted Plot saved to your profile!")
 
-        # Save visualization
-        if 'username' in st.session_state:
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png')
-            image_bytes = buf.getvalue()
-            save_visualization(st.session_state['username'], image_bytes)
-            st.success("✅ Feature Importance Plot saved to your profile!")
+            # Residual Plot
+            st.markdown("#### Residual Plot")
+            residuals = y_test - y_pred
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.scatterplot(x=y_pred, y=residuals, ax=ax)
+            ax.axhline(0, color='red', linestyle='--')
+            ax.set_xlabel('Predicted Values')
+            ax.set_ylabel('Residuals')
+            ax.set_title('Residual Plot')
+            st.pyplot(fig)
 
+            # Save visualization
+            if 'username' in st.session_state:
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png')
+                image_bytes = buf.getvalue()
+                save_visualization(st.session_state['username'], image_bytes)
+                st.success("✅ Residual Plot saved to your profile!")
 
-    
+        # Feature Importance (for Random Forest)
+        if model_name in ["Random Forest", "Random Forest Regressor"]:
+            st.markdown("#### Feature Importance")
+            importances = model.feature_importances_
+            feature_imp_df = pd.DataFrame({
+                'Feature': feature_cols,
+                'Importance': importances
+            }).sort_values('Importance', ascending=False)
+
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.barplot(x='Importance', y='Feature', data=feature_imp_df, ax=ax)
+            ax.set_title('Feature Importance')
+            st.pyplot(fig)
+
+            # Save visualization
+            if 'username' in st.session_state:
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png')
+                image_bytes = buf.getvalue()
+                save_visualization(st.session_state['username'], image_bytes)
+                st.success("✅ Feature Importance Plot saved to your profile!")
+
+        # Custom Prediction Input
+        st.markdown("### 🔮 Make a Custom Prediction")
+        custom_input = {}
+        for col in feature_cols:
+            if X[col].dtype in ['int64', 'float64']:
+                custom_input[col] = st.number_input(f"Enter value for {col}", value=0.0)
+            else:
+                unique_vals = data[col].unique()
+                custom_input[col] = st.selectbox(f"Select value for {col}", unique_vals)
+        
+        if st.button("Predict"):
+            custom_df = pd.DataFrame([custom_input])
+            for col in categorical_cols:
+                custom_df[col] = LabelEncoder().fit_transform(custom_df[col].astype(str))
+            custom_pred = model.predict(custom_df)
+            st.write(f"**Prediction**: {custom_pred[0]}")
+
     # --- TEXT ANALYSIS ---
     elif selected_analysis == "Text Analysis":
         st.subheader("📜 Text Analysis")
@@ -858,11 +917,13 @@ def advanced_analysis_page():
     # --- TIME SERIES ANALYSIS ---
     elif selected_analysis == "Time Series Analysis":
         st.subheader("📅 Time Series Analysis")
-        date_col, value_col = st.selectbox("Select Date Column", data.columns), \
-                              st.selectbox("Select Numeric Column", data.select_dtypes(include=['number']).columns)
+        date_col = st.selectbox("Select Date Column", data.columns)
+        value_col = st.selectbox("Select Numeric Column", data.select_dtypes(include=['number']).columns)
         data[date_col] = pd.to_datetime(data[date_col], errors='coerce')
         data = data.dropna(subset=[date_col, value_col]).set_index(date_col)
         st.line_chart(data[value_col])
+
+
 
 import streamlit as st
 import pandas as pd
