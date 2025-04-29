@@ -737,8 +737,11 @@ def advanced_analysis_page():
         st.markdown("### 📊 Model Performance")
         accuracy = model.score(X_test, y_test)
         st.write(f"🎯 **Accuracy Score:** {accuracy:.4f}")
-        st.write("📊 **Classification Report:**")
-        st.text(classification_report(y_test, y_pred))
+        
+        # Collapsible classification report
+        with st.expander("Show Detailed Classification Report"):
+            st.write("📊 **Classification Report:**")
+            st.text(classification_report(y_test, y_pred))
 
         # Display predictions
         st.markdown("### 🔍 Predictions")
@@ -766,25 +769,6 @@ def advanced_analysis_page():
         ax.set_ylabel('Actual')
         ax.set_title('Confusion Matrix')
         st.pyplot(fig)
-
-        # ROC Curve (only for binary classification)
-        if len(np.unique(y)) == 2 and hasattr(model, "predict_proba"):
-            st.markdown("#### ROC Curve")
-            y_prob = model.predict_proba(X_test)[:, 1]
-            fpr, tpr, _ = roc_curve(y_test, y_prob)
-            roc_auc = auc(fpr, tpr)
-            fig, ax = plt.subplots(figsize=(8, 6))
-            ax.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
-            ax.plot([0, 1], [0, 1], 'k--')
-            ax.set_xlim([0.0, 1.0])
-            ax.set_ylim([0.0, 1.05])
-            ax.set_xlabel('False Positive Rate')
-            ax.set_ylabel('True Positive Rate')
-            ax.set_title('Receiver Operating Characteristic')
-            ax.legend(loc="lower right")
-            st.pyplot(fig)
-        else:
-            st.warning("⚠ ROC Curve is only available for binary classification problems.")
 
         # Feature Importance (for Random Forest)
         if model_name == "Random Forest":
