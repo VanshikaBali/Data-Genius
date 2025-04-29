@@ -626,10 +626,10 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, confusion_matrix, mean_squared_error, r2_score
 
+
 @st.cache_data
 def get_cleaned_data():
     return st.session_state.get('cleaned_data', None)
-
 
 def advanced_analysis_page():
     st.markdown("<h2 style='color: #FF5733;'><em>Advanced Analysis</em></h2>", unsafe_allow_html=True)
@@ -690,17 +690,7 @@ def advanced_analysis_page():
         
         # Select target and features
         target = st.selectbox("🎯 Select Target Column", data.columns)
-        is_regression = data[target].dtype in ['int64', 'float64'] and len(data[target].unique()) > 10
-        model_type = st.radio("Select Model Type", ["Automatic", "Classification", "Regression"])
-
-        if model_type == "Automatic":
-            is_classification = not is_regression
-        else:
-            is_classification = model_type == "Classification"
-
-        model_name = st.selectbox("Select Model", 
-                                ["Random Forest", "Logistic Regression", "Decision Tree", "SVM"] if is_classification 
-                                else ["Linear Regression", "Random Forest Regressor", "Ridge", "Lasso"])
+        model_name = st.selectbox("Select Model", ["Logistic Regression", "Random Forest", "Decision Tree", "SVM"])
 
         feature_cols = st.multiselect("Select Feature Columns", 
                                     [col for col in data.columns if col != target],
@@ -729,40 +719,24 @@ def advanced_analysis_page():
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
         # Initialize and train model
-        if is_classification:
-            if model_name == "Random Forest":
-                model = RandomForestClassifier(random_state=42)
-            elif model_name == "Logistic Regression":
-                model = LogisticRegression(random_state=42)
-            elif model_name == "Decision Tree":
-                model = DecisionTreeClassifier(random_state=42)
-            elif model_name == "SVM":
-                model = SVC(random_state=42, probability=True)
-        else:
-            if model_name == "Linear Regression":
-                model = LinearRegression()
-            elif model_name == "Random Forest Regressor":
-                model = RandomForestRegressor(random_state=42)
-            elif model_name == "Ridge":
-                model = Ridge(random_state=42)
-            elif model_name == "Lasso":
-                model = Lasso(random_state=42)
+        if model_name == "Logistic Regression":
+            model = LogisticRegression(random_state=42)
+        elif model_name == "Random Forest":
+            model = RandomForestClassifier(random_state=42)
+        elif model_name == "Decision Tree":
+            model = DecisionTreeClassifier(random_state=42)
+        elif model_name == "SVM":
+            model = SVC(random_state=42, probability=True)
 
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
 
         # Display model performance
         st.markdown("### 📊 Model Performance")
-        if is_classification:
-            accuracy = model.score(X_test, y_test)
-            st.write(f"🎯 **Accuracy Score:** {accuracy:.4f}")
-            st.write("📊 **Classification Report:**")
-            st.text(classification_report(y_test, y_pred))
-        else:
-            r2 = r2_score(y_test, y_pred)
-            mse = mean_squared_error(y_test, y_pred)
-            st.write(f"📈 **R² Score:** {r2:.4f}")
-            st.write(f"📉 **Mean Squared Error:** {mse:.4f}")
+        accuracy = model.score(X_test, y_test)
+        st.write(f"🎯 **Accuracy Score:** {accuracy:.4f}")
+        st.write("📊 **Classification Report:**")
+        st.text(classification_report(y_test, y_pred))
 
         # Display predictions
         st.markdown("### 🔍 Predictions")
@@ -781,92 +755,35 @@ def advanced_analysis_page():
         # Visualizations
         st.markdown("### 📈 Visualizations")
 
-        # Classification Visualizations
-        if is_classification:
-            # Confusion Matrix
-            st.markdown("#### Confusion Matrix")
-            cm = confusion_matrix(y_test, y_pred)
+        # Confusion Matrix
+        st.markdown("#### Confusion Matrix")
+        cm = confusion_matrix(y_test, y_pred)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+        ax.set_xlabel('Predicted')
+        ax.set_ylabel('Actual')
+        ax.set_title('Confusion Matrix')
+        st.pyplot(fig)
+
+        # ROC Curve (if applicable)
+        if hasattr(model, "predict_proba"):
+            st.markdown("#### ROC Curve")
+            y_prob = model.predict_proba(X_test)[:, 1]
+            fpr, tpr, _ = roc_curve(y_test, y_prob, pos_label=model.classes_[1])
+            roc_auc = auc(fpr, tpr)
             fig, ax = plt.subplots(figsize=(8, 6))
-            sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
-            ax.set_xlabel('Predicted')
-            ax.set_ylabel('Actual')
-            ax.set_title('Confusion Matrix')
+            ax.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
+            ax.plot([0, 1], [0, 1], 'k--')
+            ax.set_xlim([0.0, 1.0])
+            ax.set_ylim([0.0, 1.05])
+            ax.set_xlabel('False Positive Rate')
+            ax.set_ylabel('True Positive Rate')
+            ax.set_title('Receiver Operating Characteristic')
+            ax.legend(loc="lower right")
             st.pyplot(fig)
-
-            # Save visualization
-            if 'username' in st.session_state:
-                buf = io.BytesIO()
-                fig.savefig(buf, format='png')
-                image_bytes = buf.getvalue()
-                save_visualization(st.session_state['username'], image_bytes)
-                st.success("✅ Confusion Matrix saved to your profile!")
-
-            # ROC Curve (if applicable)
-            if hasattr(model, "predict_proba"):
-                st.markdown("#### ROC Curve")
-                y_prob = model.predict_proba(X_test)[:, 1]
-                fpr, tpr, _ = roc_curve(y_test, y_prob, pos_label=model.classes_[1])
-                roc_auc = auc(fpr, tpr)
-                fig, ax = plt.subplots(figsize=(8, 6))
-                ax.plot(fpr, tpr, label=f'ROC curve (AUC = {roc_auc:.2f})')
-                ax.plot([0, 1], [0, 1], 'k--')
-                ax.set_xlim([0.0, 1.0])
-                ax.set_ylim([0.0, 1.05])
-                ax.set_xlabel('False Positive Rate')
-                ax.set_ylabel('True Positive Rate')
-                ax.set_title('Receiver Operating Characteristic')
-                ax.legend(loc="lower right")
-                st.pyplot(fig)
-
-                # Save visualization
-                if 'username' in st.session_state:
-                    buf = io.BytesIO()
-                    fig.savefig(buf, format='png')
-                    image_bytes = buf.getvalue()
-                    save_visualization(st.session_state['username'], image_bytes)
-                    st.success("✅ ROC Curve saved to your profile!")
-
-        # Regression Visualizations
-        else:
-            # Actual vs Predicted Scatter Plot
-            st.markdown("#### Actual vs Predicted Values")
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.scatterplot(x=y_test, y=y_pred, ax=ax)
-            ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
-            ax.set_xlabel('Actual Values')
-            ax.set_ylabel('Predicted Values')
-            ax.set_title('Actual vs Predicted')
-            st.pyplot(fig)
-
-            # Save visualization
-            if 'username' in st.session_state:
-                buf = io.BytesIO()
-                fig.savefig(buf, format='png')
-                image_bytes = buf.getvalue()
-                save_visualization(st.session_state['username'], image_bytes)
-                st.success("✅ Actual vs Predicted Plot saved to your profile!")
-
-            # Residual Plot
-            st.markdown("#### Residual Plot")
-            residuals = y_test - y_pred
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.scatterplot(x=y_pred, y=residuals, ax=ax)
-            ax.axhline(0, color='red', linestyle='--')
-            ax.set_xlabel('Predicted Values')
-            ax.set_ylabel('Residuals')
-            ax.set_title('Residual Plot')
-            st.pyplot(fig)
-
-            # Save visualization
-            if 'username' in st.session_state:
-                buf = io.BytesIO()
-                fig.savefig(buf, format='png')
-                image_bytes = buf.getvalue()
-                save_visualization(st.session_state['username'], image_bytes)
-                st.success("✅ Residual Plot saved to your profile!")
 
         # Feature Importance (for Random Forest)
-        if model_name in ["Random Forest", "Random Forest Regressor"]:
+        if model_name == "Random Forest":
             st.markdown("#### Feature Importance")
             importances = model.feature_importances_
             feature_imp_df = pd.DataFrame({
@@ -878,14 +795,6 @@ def advanced_analysis_page():
             sns.barplot(x='Importance', y='Feature', data=feature_imp_df, ax=ax)
             ax.set_title('Feature Importance')
             st.pyplot(fig)
-
-            # Save visualization
-            if 'username' in st.session_state:
-                buf = io.BytesIO()
-                fig.savefig(buf, format='png')
-                image_bytes = buf.getvalue()
-                save_visualization(st.session_state['username'], image_bytes)
-                st.success("✅ Feature Importance Plot saved to your profile!")
 
         # Custom Prediction Input
         st.markdown("### 🔮 Make a Custom Prediction")
