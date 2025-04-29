@@ -626,8 +626,6 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, confusion_matrix, mean_squared_error, r2_score
 
-
-
 @st.cache_data
 def get_cleaned_data():
     return st.session_state.get('cleaned_data', None)
@@ -689,33 +687,38 @@ def advanced_analysis_page():
     elif selected_analysis == "Predictive Analysis":
         st.subheader("🤖 Predictive Analysis")
         
-        # Select target and features
-        target = st.selectbox("🎯 Select Target Column", data.columns)
+        # Select target (only numeric columns suitable for classification)
+        numeric_cols = data.select_dtypes(include=['int64', 'float64']).columns
+        target_options = [col for col in numeric_cols if len(data[col].unique()) <= 10]  # Limit to columns with few unique values
+        if not target_options:
+            st.error("⚠ No suitable numeric columns for classification. Please select a numeric column with fewer than 10 unique values.")
+            return
+        target = st.selectbox("🎯 Select Target Column (Y)", target_options)
         model_name = st.selectbox("Select Model", ["Logistic Regression", "Random Forest", "Decision Tree", "SVM"])
 
-        # Filter out text columns like Song_Name from features
-        feature_cols = st.multiselect("Select Feature Columns", 
-                                    [col for col in data.columns if col != target and data[col].dtype != 'object'],
-                                    default=[col for col in data.columns if col != target and data[col].dtype != 'object'][:5])
-
+        # Automatically select all other numeric columns as features (X)
+        feature_cols = [col for col in numeric_cols if col != target]
         if not feature_cols:
-            st.warning("⚠ Please select at least one feature column.")
+            st.warning("⚠ No numeric feature columns available. Please ensure there are numeric columns besides the target.")
             return
 
         X = data[feature_cols].copy()
         y = data[target].copy()
 
-        # Handle categorical features (only numeric now, no Song_Name)
-        categorical_cols = X.select_dtypes(include=['object']).columns
-        for col in categorical_cols:
-            X[col] = LabelEncoder().fit_transform(X[col].astype(str))
-
-        # Handle missing values
-        X.fillna(X.mean(numeric_only=True), inplace=True)
+        # Convert target to integers for classification
         if np.issubdtype(y.dtype, np.number):
-            y.fillna(y.mean(), inplace=True)
+            y = y.astype(int)  # Ensure numeric targets are integers
         else:
-            y.fillna(y.mode()[0], inplace=True)
+            le = LabelEncoder()
+            y = le.fit_transform(y.astype(str))  # Shouldn't happen since we're restricting to numeric
+
+        # Handle missing values in features
+        X.fillna(X.mean(numeric_only=True), inplace=True)
+        # Handle missing values in target
+        if np.issubdtype(y.dtype, np.number):
+            y = pd.Series(y).fillna(pd.Series(y).mean()).astype(int)
+        else:
+            y = pd.Series(y).fillna(pd.Series(y).mode()[0])
 
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -788,16 +791,10 @@ def advanced_analysis_page():
         st.markdown("### 🔮 Make a Custom Prediction")
         custom_input = {}
         for col in feature_cols:
-            if X[col].dtype in ['int64', 'float64']:
-                custom_input[col] = st.number_input(f"Enter value for {col}", value=0.0)
-            else:
-                unique_vals = data[col].unique()
-                custom_input[col] = st.selectbox(f"Select value for {col}", unique_vals)
+            custom_input[col] = st.number_input(f"Enter value for {col}", value=0.0)
         
         if st.button("Predict"):
             custom_df = pd.DataFrame([custom_input])
-            for col in categorical_cols:
-                custom_df[col] = LabelEncoder().fit_transform(custom_df[col].astype(str))
             custom_pred = model.predict(custom_df)
             st.write(f"**Prediction**: {custom_pred[0]}")
 
