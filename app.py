@@ -626,6 +626,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, confusion_matrix, mean_squared_error, r2_score
 
+
 @st.cache_data
 def get_cleaned_data():
     return st.session_state.get('cleaned_data', None)
@@ -773,30 +774,42 @@ def advanced_analysis_page():
         ax.set_title('Confusion Matrix')
         st.pyplot(fig)
 
-        # Feature Importance (for Random Forest)
-        if model_name == "Random Forest":
-            st.markdown("#### Feature Importance")
+        # Feature Importance (for all models)
+        st.markdown("#### Feature Importance")
+        importances = []
+        if model_name in ["Random Forest", "Decision Tree"]:
             importances = model.feature_importances_
-            feature_imp_df = pd.DataFrame({
-                'Feature': feature_cols,
-                'Importance': importances
-            }).sort_values('Importance', ascending=False)
+        elif model_name == "Logistic Regression":
+            importances = np.abs(model.coef_[0])  # Use absolute coefficients for LR
+        elif model_name == "SVM" and hasattr(model, "coef_"):  # Linear SVM
+            importances = np.abs(model.coef_[0])
+        else:
+            st.warning("⚠ Feature importance not directly available for this model.")
+            return
 
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.barplot(x='Importance', y='Feature', data=feature_imp_df, ax=ax)
-            ax.set_title('Feature Importance')
-            st.pyplot(fig)
+        feature_imp_df = pd.DataFrame({
+            'Feature': feature_cols,
+            'Importance': importances
+        }).sort_values('Importance', ascending=False)
 
-        # Custom Prediction Input
-        st.markdown("### 🔮 Make a Custom Prediction")
-        custom_input = {}
-        for col in feature_cols:
-            custom_input[col] = st.number_input(f"Enter value for {col}", value=0.0)
-        
-        if st.button("Predict"):
-            custom_df = pd.DataFrame([custom_input])
-            custom_pred = model.predict(custom_df)
-            st.write(f"**Prediction**: {custom_pred[0]}")
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.barplot(x='Importance', y='Feature', data=feature_imp_df, ax=ax)
+        ax.set_title('Feature Importance')
+        st.pyplot(fig)
+
+        # Actual vs Predicted Distribution
+        st.markdown("#### Actual vs Predicted Distribution")
+        # Combine actual and predicted into a single DataFrame for plotting
+        plot_df = pd.DataFrame({
+            'Value': np.concatenate([y_test, y_pred]),
+            'Type': ['Actual'] * len(y_test) + ['Predicted'] * len(y_pred)
+        })
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.countplot(x='Value', hue='Type', data=plot_df, ax=ax)
+        ax.set_xlabel('Class')
+        ax.set_ylabel('Count')
+        ax.set_title('Actual vs Predicted Distribution')
+        st.pyplot(fig)
 
     # --- TEXT ANALYSIS ---
     elif selected_analysis == "Text Analysis":
@@ -817,7 +830,6 @@ def advanced_analysis_page():
         data = data.dropna(subset=[date_col, value_col]).set_index(date_col)
         st.line_chart(data[value_col])
 
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -825,7 +837,6 @@ import sqlite3
 from datetime import datetime
 import io
 import os
-
 import sqlite3
 import pandas as pd
 
