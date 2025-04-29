@@ -686,60 +686,165 @@ def advanced_analysis_page():
 
     # --- PREDICTIVE ANALYSIS (Your Provided Code) ---
     elif selected_analysis == "Predictive Analysis":
-        st.subheader("🤖 Predictive Analysis")
-        target = st.selectbox("🎯 Select Target Column", data.columns)
-        is_regression = data[target].dtype in ['int64', 'float64'] and len(data[target].unique()) > 10
-        model_type = st.radio("Select Model Type", ["Automatic", "Classification", "Regression"])
+    st.subheader("🤖 Predictive Analysis")
+    
+    # Select target and features
+    target = st.selectbox("🎯 Select Target Column", data.columns)
+    is_regression = data[target].dtype in ['int64', 'float64'] and len(data[target].unique()) > 10
+    model_type = st.radio("Select Model Type", ["Automatic", "Classification", "Regression"])
 
-        if model_type == "Automatic":
-            is_classification = not is_regression
-        else:
-            is_classification = model_type == "Classification"
+    if model_type == "Automatic":
+        is_classification = not is_regression
+    else:
+        is_classification = model_type == "Classification"
 
-        model_name = st.selectbox("Select Model", 
-                                  ["Random Forest", "Logistic Regression", "Decision Tree", "SVM"] if is_classification 
-                                  else ["Linear Regression", "Random Forest Regressor", "Ridge", "Lasso"])
+    model_name = st.selectbox("Select Model", 
+                              ["Random Forest", "Logistic Regression", "Decision Tree", "SVM"] if is_classification 
+                              else ["Linear Regression", "Random Forest Regressor", "Ridge", "Lasso"])
 
-        feature_cols = st.multiselect("Select Feature Columns", 
-                                      [col for col in data.columns if col != target],
-                                      default=[col for col in data.columns if col != target][:5])
+    feature_cols = st.multiselect("Select Feature Columns", 
+                                  [col for col in data.columns if col != target],
+                                  default=[col for col in data.columns if col != target][:5])
 
-        X = data[feature_cols].copy()
-        y = data[target].copy()
+    if not feature_cols:
+        st.warning("⚠ Please select at least one feature column.")
+        return
 
-        if not np.issubdtype(y.dtype, np.number):
-            st.warning("⚠ Please select a numerical target column for Predictive Analysis.")
-            return  
-        categorical_cols = X.select_dtypes(include=['object']).columns
-        for col in categorical_cols:
-            X[col] = LabelEncoder().fit_transform(X[col].astype(str))
+    X = data[feature_cols].copy()
+    y = data[target].copy()
 
-        X.fillna(X.mean(numeric_only=True), inplace=True)
+    # Handle categorical features
+    categorical_cols = X.select_dtypes(include=['object']).columns
+    for col in categorical_cols:
+        X[col] = LabelEncoder().fit_transform(X[col].astype(str))
 
-        if np.issubdtype(y.dtype, np.number):
-            y.fillna(y.mean(), inplace=True)
+    # Handle missing values
+    X.fillna(X.mean(numeric_only=True), inplace=True)
+    if np.issubdtype(y.dtype, np.number):
+        y.fillna(y.mean(), inplace=True)
+    else:
+        y.fillna(y.mode()[0], inplace=True)
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        if is_classification:
-            model = RandomForestClassifier() if model_name == "Random Forest" else LogisticRegression()
-        else:
-            model = LinearRegression() if model_name == "Linear Regression" else RandomForestRegressor()
+    # Initialize and train model
+    if is_classification:
+        if model_name == "Random Forest":
+            model = RandomForestClassifier(random_state=42)
+        elif model_name == "Logistic Regression":
+            model = LogisticRegression(random_state=42)
+        elif model_name == "Decision Tree":
+            model = DecisionTreeClassifier(random_state=42)
+        elif model_name == "SVM":
+            model = SVC(random_state=42, probability=True)
+    else:
+        if model_name == "Linear Regression":
+            model = LinearRegression()
+        elif model_name == "Random Forest Regressor":
+            model = RandomForestRegressor(random_state=42)
+        elif model_name == "Ridge":
+            model = Ridge(random_state=42)
+        elif model_name == "Lasso":
+            model = Lasso(random_state=42)
 
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
 
-        if is_classification:
-           st.write(f"🎯 **Accuracy Score:** {model.score(X_test, y_test):.4f}")
-           st.write("📌 **Accuracy Score**: This tells how well the model correctly classifies the test data. A score of 1 means perfect predictions, while 0 means completely incorrect predictions.")
-           st.write("📊 **Classification Report:**")
-           st.text(classification_report(y_test, y_pred))
-        else:
-           st.write(f"📈 **R² Score:** {r2_score(y_test, y_pred):.4f}")
-           st.write("📌 **R² Score**: This measures how well the regression model fits the data. A score close to 1 indicates a good fit, while a score near 0 or negative means the model is not performing well.")
-           st.write(f"🔍 **Mean Squared Error (MSE):** {mean_squared_error(y_test, y_pred):.4f}")
-           st.write("📌 **MSE**: This shows how far the predicted values are from the actual values. A lower MSE means better predictions, while a higher value indicates poor model performance.")
-        
+    # Display model performance
+    st.markdown("### 📊 Model Performance")
+    if is_classification:
+        accuracy = model.score(X_test, y_test)
+        st.write(f"🎯 **Accuracy Score:** {accuracy:.4f}")
+        st.write("📊 **Classification Report:**")
+        st.text(classification_report(y_test, y_pred))
+    else:
+        r2 = r2_score(y_test, y_pred)
+        mse = mean_squared_error(y_test, y_pred)
+        st.write(f"📈 **R² Score:** {r2:.4f}")
+        st.write(f"📉 **Mean Squared Error:** {mse:.4f}")
+
+    # Display predictions
+    st.markdown("### 🔍 Predictions")
+    pred_df = pd.DataFrame({
+        'Actual': y_test,
+        'Predicted': y_pred
+    }).reset_index(drop=True)
+    st.write(pred_df.head(10))  # Show first 10 predictions
+
+    # Download predictions as CSV
+    csv = pred_df.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()
+    href = f'<a href="data:file/csv;base64,{b64}" download="predictions.csv">Download Predictions as CSV</a>'
+    st.markdown(href, unsafe_allow_html=True)
+
+    # Visualizations
+    st.markdown("### 📈 Visualizations")
+
+    # Classification Visualizations
+    if is_classification:
+        # Confusion Matrix
+        st.markdown("#### Confusion Matrix")
+        cm = confusion_matrix(y_test, y_pred)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+        ax.set_xlabel('Predicted')
+        ax.set_ylabel('Actual')
+        ax.set_title('Confusion Matrix')
+        st.pyplot(fig)
+
+        # Save visualization
+        if 'username' in st.session_state:
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png')
+            image_bytes = buf.getvalue()
+            save_visualization(st.session_state['username'], image_bytes)
+            st.success("✅ Confusion Matrix saved to your profile!")
+
+    # Regression Visualizations
+    else:
+        # Actual vs Predicted Scatter Plot
+        st.markdown("#### Actual vs Predicted Values")
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.scatterplot(x=y_test, y=y_pred, ax=ax)
+        ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2)
+        ax.set_xlabel('Actual Values')
+        ax.set_ylabel('Predicted Values')
+        ax.set_title('Actual vs Predicted')
+        st.pyplot(fig)
+
+        # Save visualization
+        if 'username' in st.session_state:
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png')
+            image_bytes = buf.getvalue()
+            save_visualization(st.session_state['username'], image_bytes)
+            st.success("✅ Actual vs Predicted Plot saved to your profile!")
+
+    # Feature Importance (for Random Forest)
+    if model_name in ["Random Forest", "Random Forest Regressor"]:
+        st.markdown("#### Feature Importance")
+        importances = model.feature_importances_
+        feature_imp_df = pd.DataFrame({
+            'Feature': feature_cols,
+            'Importance': importances
+        }).sort_values('Importance', ascending=False)
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        sns.barplot(x='Importance', y='Feature', data=feature_imp_df, ax=ax)
+        ax.set_title('Feature Importance')
+        st.pyplot(fig)
+
+        # Save visualization
+        if 'username' in st.session_state:
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png')
+            image_bytes = buf.getvalue()
+            save_visualization(st.session_state['username'], image_bytes)
+            st.success("✅ Feature Importance Plot saved to your profile!")
+
+
+    
     # --- TEXT ANALYSIS ---
     elif selected_analysis == "Text Analysis":
         st.subheader("📜 Text Analysis")
