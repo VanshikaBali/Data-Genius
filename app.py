@@ -797,18 +797,21 @@ def advanced_analysis_page():
         ax.set_title('Feature Importance')
         st.pyplot(fig)
 
-        # Actual vs Predicted Distribution
-        st.markdown("#### Actual vs Predicted Distribution")
-        # Combine actual and predicted into a single DataFrame for plotting
-        plot_df = pd.DataFrame({
-            'Value': np.concatenate([y_test, y_pred]),
-            'Type': ['Actual'] * len(y_test) + ['Predicted'] * len(y_pred)
-        })
+        # Actual vs Predicted Scatter Plot
+        st.markdown("#### Actual vs Predicted Scatter Plot")
         fig, ax = plt.subplots(figsize=(8, 6))
-        sns.countplot(x='Value', hue='Type', data=plot_df, ax=ax)
-        ax.set_xlabel('Class')
-        ax.set_ylabel('Count')
-        ax.set_title('Actual vs Predicted Distribution')
+        # Add jitter to actual and predicted values to avoid overlap
+        jitter = 0.05
+        actual_jittered = y_test + np.random.uniform(-jitter, jitter, size=len(y_test))
+        predicted_jittered = y_pred + np.random.uniform(-jitter, jitter, size=len(y_pred))
+        ax.scatter(actual_jittered, predicted_jittered, alpha=0.5)
+        # Add a diagonal line for perfect predictions
+        min_val, max_val = min(min(y_test), min(y_pred)), max(max(y_test), max(y_pred))
+        ax.plot([min_val, max_val], [min_val, max_val], 'k--', label='Perfect Prediction')
+        ax.set_xlabel('Actual')
+        ax.set_ylabel('Predicted')
+        ax.set_title('Actual vs Predicted')
+        ax.legend()
         st.pyplot(fig)
 
     # --- TEXT ANALYSIS ---
