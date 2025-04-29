@@ -631,7 +631,7 @@ def get_cleaned_data():
     return st.session_state.get('cleaned_data', None)
 
 
-ef advanced_analysis_page():
+def advanced_analysis_page():
     st.markdown("<h2 style='color: #FF5733;'><em>Advanced Analysis</em></h2>", unsafe_allow_html=True)
 
     # Use cleaned data if available
