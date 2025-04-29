@@ -627,6 +627,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import classification_report, confusion_matrix, mean_squared_error, r2_score
 
 
+
 @st.cache_data
 def get_cleaned_data():
     return st.session_state.get('cleaned_data', None)
@@ -692,9 +693,10 @@ def advanced_analysis_page():
         target = st.selectbox("🎯 Select Target Column", data.columns)
         model_name = st.selectbox("Select Model", ["Logistic Regression", "Random Forest", "Decision Tree", "SVM"])
 
+        # Filter out text columns like Song_Name from features
         feature_cols = st.multiselect("Select Feature Columns", 
-                                    [col for col in data.columns if col != target],
-                                    default=[col for col in data.columns if col != target][:5])
+                                    [col for col in data.columns if col != target and data[col].dtype != 'object'],
+                                    default=[col for col in data.columns if col != target and data[col].dtype != 'object'][:5])
 
         if not feature_cols:
             st.warning("⚠ Please select at least one feature column.")
@@ -703,7 +705,7 @@ def advanced_analysis_page():
         X = data[feature_cols].copy()
         y = data[target].copy()
 
-        # Handle categorical features
+        # Handle categorical features (only numeric now, no Song_Name)
         categorical_cols = X.select_dtypes(include=['object']).columns
         for col in categorical_cols:
             X[col] = LabelEncoder().fit_transform(X[col].astype(str))
@@ -833,7 +835,6 @@ def advanced_analysis_page():
         data[date_col] = pd.to_datetime(data[date_col], errors='coerce')
         data = data.dropna(subset=[date_col, value_col]).set_index(date_col)
         st.line_chart(data[value_col])
-
 
 
 import streamlit as st
