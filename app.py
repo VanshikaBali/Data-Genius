@@ -507,11 +507,14 @@ def data_analysis_page():
             st.write(grouped_data)
         except Exception as e:
             st.error(f"❌ Error: {e}")
-            
+  import streamlit as st
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 def data_visualization_page():
     st.title("📊 Data Visualization")
 
-    # Use cleaned data if available
+    # Load data from session
     if 'cleaned_data' in st.session_state:
         df = st.session_state['cleaned_data']
         st.success("✅ Using Cleaned Data for Visualization")
@@ -522,33 +525,29 @@ def data_visualization_page():
         st.warning("⚠ Please upload a CSV file from the Home page first.")
         return
 
-    # --- GRAPH SELECTION ---
+    # Graph type selection
     graph_type = st.selectbox("📈 Select Graph Type", [
         "Bar Chart", "Line Chart", "Scatter Plot", "Histogram", "Box Plot", 
         "Pie Chart", "Pair Plot", "Violin Plot", "Area Chart", "Heatmap"
     ], key="graph_type")
 
     try:
-        # --- PAIR PLOT ---
+        # Pair Plot
         if graph_type == "Pair Plot":
             numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
             if len(numeric_cols) > 1:
-                selected_cols = st.multiselect(
-                    "Select columns for Pair Plot", options=numeric_cols, default=numeric_cols[:3], key="pair_plot_cols"
-                )
+                selected_cols = st.multiselect("Select columns for Pair Plot", options=numeric_cols, default=numeric_cols[:3], key="pair_plot_cols")
                 if len(selected_cols) >= 2 and st.button("📊 Generate Pair Plot", key="pair_plot_btn"):
                     pair_fig = sns.pairplot(df[selected_cols])
                     st.pyplot(pair_fig)
             else:
                 st.warning("⚠ Not enough numeric columns for a Pair Plot.")
 
-        # --- HEATMAP ---
+        # Heatmap
         elif graph_type == "Heatmap":
             numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
             if len(numeric_cols) > 1:
-                selected_cols = st.multiselect(
-                    "Select columns for Heatmap", options=numeric_cols, default=numeric_cols[:5], key="heatmap_cols"
-                )
+                selected_cols = st.multiselect("Select columns for Heatmap", options=numeric_cols, default=numeric_cols[:5], key="heatmap_cols")
                 if len(selected_cols) >= 2 and st.button("🔥 Generate Heatmap", key="heatmap_btn"):
                     fig, ax = plt.subplots(figsize=(10, 8))
                     correlation = df[selected_cols].corr()
@@ -557,25 +556,43 @@ def data_visualization_page():
             else:
                 st.warning("⚠ Not enough numeric columns for a Heatmap.")
 
-        # --- OTHER CHARTS ---
+        # Pie Chart
+        elif graph_type == "Pie Chart":
+            x_axis = st.selectbox("📌 Select X-axis for Pie Chart", df.columns, key="pie_chart_x")
+            if st.button("📊 Generate Pie Chart", key="pie_chart_btn"):
+                value_counts = df[x_axis].value_counts()
+                if value_counts.empty:
+                    st.warning("⚠ Not enough data to create a Pie Chart.")
+                else:
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90)
+                    ax.axis('equal')
+                    st.pyplot(fig)
+
+        # Histogram (separated logic)
+        elif graph_type == "Histogram":
+            y_numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+            if y_numeric_cols:
+                y_axis = st.selectbox("📌 Select Numeric Column for Histogram", y_numeric_cols, key="hist_y_axis")
+                if st.button("📊 Generate Histogram", key="histogram_btn"):
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    sns.histplot(df[y_axis], kde=True, ax=ax)
+                    ax.set_title(f"Histogram of {y_axis}")
+                    st.pyplot(fig)
+            else:
+                st.warning("⚠ No numeric columns available for a histogram.")
+
+        # Other Chart Types
         elif graph_type in ["Bar Chart", "Line Chart", "Scatter Plot", "Box Plot", "Violin Plot", "Area Chart"]:
             x_axis = st.selectbox("📌 Select X-axis", df.columns, key="x_axis")
             y_numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-
-            # Ensure Y-axis selection is only for numeric data
-            if graph_type == "Histogram":
-                y_axis = st.selectbox("📌 Select Numeric Column for Histogram", y_numeric_cols, key="hist_y_axis")
-            else:
-                y_axis = st.selectbox("📌 Select Y-axis", y_numeric_cols, key="y_axis")
+            y_axis = st.selectbox("📌 Select Y-axis", y_numeric_cols, key="y_axis")
 
             if st.button(f"📊 Generate {graph_type}", key=f"{graph_type}_btn"):
                 fig, ax = plt.subplots(figsize=(10, 6))
 
-                # Conditional logic based on chart type
                 if graph_type == "Bar Chart":
                     sns.barplot(x=df[x_axis], y=df[y_axis], ax=ax)
-                elif graph_type == "Histogram":
-                    sns.histplot(df[y_axis], kde=True, ax=ax)  # ✅ Fixed histogram
                 elif graph_type == "Line Chart":
                     sns.lineplot(x=df[x_axis], y=df[y_axis], ax=ax)
                 elif graph_type == "Scatter Plot":
@@ -586,29 +603,17 @@ def data_visualization_page():
                     sns.violinplot(x=df[x_axis], y=df[y_axis], ax=ax)
                 elif graph_type == "Area Chart":
                     sns.lineplot(x=df[x_axis], y=df[y_axis], ax=ax)
-                    ax.fill_between(df[x_axis], df[y_axis], alpha=0.3)  # ✅ Fixed fill_between
+                    ax.fill_between(df[x_axis], df[y_axis], alpha=0.3)
 
+                ax.set_title(f"{graph_type} of {y_axis} vs {x_axis}")
                 plt.xticks(rotation=45)
                 plt.tight_layout()
                 st.pyplot(fig)
 
-        # --- PIE CHART ---
-        elif graph_type == "Pie Chart":
-            x_axis = st.selectbox("📌 Select X-axis for Pie Chart", df.columns, key="pie_chart_x")
-            
-            if st.button("📊 Generate Pie Chart", key="pie_chart_btn"):
-                value_counts = df[x_axis].value_counts()
-
-                if value_counts.empty:
-                    st.warning("⚠ Not enough data to create a Pie Chart.")
-                else:
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    ax.pie(value_counts, labels=value_counts.index, autopct='%1.1f%%', startangle=90)
-                    ax.axis('equal')
-                    st.pyplot(fig)
-
     except Exception as e:
         st.error(f"🚨 Error: {str(e)}")
+          
+
 
 import streamlit as st
 import pandas as pd
@@ -760,19 +765,6 @@ def advanced_analysis_page():
         b64 = base64.b64encode(csv.encode()).decode()
         href = f'<a href="data:file/csv;base64,{b64}" download="predictions.csv">Download Predictions as CSV</a>'
         st.markdown(href, unsafe_allow_html=True)
-
-        # Visualizations
-        st.markdown("### 📈 Visualizations")
-
-        # Confusion Matrix
-        st.markdown("#### Confusion Matrix")
-        cm = confusion_matrix(y_test, y_pred)
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
-        ax.set_xlabel('Predicted')
-        ax.set_ylabel('Actual')
-        ax.set_title('Confusion Matrix')
-        st.pyplot(fig)
 
         # Feature Importance (for all models)
         st.markdown("#### Feature Importance")
