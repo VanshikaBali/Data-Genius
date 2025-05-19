@@ -507,7 +507,8 @@ def data_analysis_page():
             st.write(grouped_data)
         except Exception as e:
             st.error(f"❌ Error: {e}")
-  import streamlit as st
+
+import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
 
